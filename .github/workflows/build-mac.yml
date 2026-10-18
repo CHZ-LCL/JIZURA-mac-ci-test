@@ -44,15 +44,21 @@ jobs:
 
       - name: Smoke test (server inside the built app)
         run: |
-          set -e
-          APP="exe-build/dist-mac/JIZURA.app/Contents/MacOS/JIZURA"
+          set -eux
+          APP="exe-build/dist-mac/JIZURA-mac/JIZURA.app/Contents/MacOS/JIZURA"
+          ls -la exe-build/dist-mac/ || true
+          ls -la exe-build/dist-mac/JIZURA-mac/JIZURA.app/Contents/MacOS/ || true
           test -x "$APP"
-          "$APP" --no-ui --no-recognizer --no-converter --port 18123 &
+          "$APP" --no-ui --no-recognizer --no-converter --port 18123 > /tmp/jizura-app.log 2>&1 &
           APP_PID=$!
           ok=""
           for i in $(seq 1 60); do
-            if curl -fsS -o /dev/null "http://127.0.0.1:18123/zh-hans/index.html"; then
+            if curl -fsS --max-time 5 -o /dev/null "http://127.0.0.1:18123/zh-hans/index.html"; then
               ok=1
+              break
+            fi
+            if ! kill -0 "$APP_PID" 2>/dev/null; then
+              echo "app process exited early"
               break
             fi
             sleep 1
@@ -61,6 +67,8 @@ jobs:
           pkill -f "JIZURA.app/Contents/MacOS/JIZURA" 2>/dev/null || true
           if [ -z "$ok" ]; then
             echo "::error::smoke test failed: page was not served"
+            echo "--- app log ---"
+            tail -n 100 /tmp/jizura-app.log || true
             exit 1
           fi
           echo "smoke test OK"
