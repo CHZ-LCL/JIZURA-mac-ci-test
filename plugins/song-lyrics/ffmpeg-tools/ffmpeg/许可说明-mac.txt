@@ -1,0 +1,4 @@
+本目录下的 ffmpeg 是 FFmpeg 官方或第三方构建，以独立可执行文件形式随附分发。
+FFmpeg 遵循其自身许可证（GPL/LGPL，视构建而定）；源代码与许可见 https://ffmpeg.org/
+构建来源：npmmirror 镜像 · ffmpeg-static b6.1.1（推荐，国内快）
+许可证原文见本目录 darwin-arm64.LICENSE。

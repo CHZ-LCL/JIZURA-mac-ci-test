@@ -1,0 +1,11 @@
+# JIZURA local recognizer dependencies (Python 3.10-3.13)
+# NOTE: keep this file ASCII-only. pip reads it with the console/locale encoding on Windows
+# (GBK on Chinese systems) and non-ASCII bytes here make pip crash before installing anything.
+#
+# shazamio==0.8.1 is the version verified end-to-end against this tool, but it transitively
+# pins shazamio-core==1.1.2, which has no binary wheels for Python 3.13+. On 3.13 pip must
+# fall back to shazamio 0.7.0 whose core ships a stable-ABI (cp310-abi3) wheel. Python 3.14
+# currently has no installable combination at all; the launcher .bat reports that clearly.
+shazamio==0.8.1; python_version < "3.13"
+shazamio==0.7.0; python_version >= "3.13"
+requests>=2.31.0

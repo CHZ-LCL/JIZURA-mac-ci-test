@@ -1,0 +1,94 @@
+name: Build JIZURA.app (macOS arm64)
+
+# 在 GitHub 免费的真 Apple Silicon runner（macos-14 = M1/arm64）上构建 JIZURA.app，
+# 产出完整发行包 JIZURA-mac-<日期>.zip（app + models/ + ffmpeg/ + 使用说明.txt）。
+# 用法见仓库根目录 README-CI.md。由主仓库 exe-build/make-ci-repo.py 生成/同步。
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ['main', 'master']
+
+concurrency:
+  group: build-mac-${{ github.ref }}
+  cancel-in-progress: true
+
+# 发 Release 需要写权限；若仓库 Settings → Actions → General → Workflow permissions
+# 被设为只读，会被降级导致最后一步失败（只拿 Artifacts 则无所谓）。
+permissions:
+  contents: write
+
+jobs:
+  build-mac:
+    runs-on: macos-14          # 真 Apple Silicon（arm64）runner
+    timeout-minutes: 90
+    env:
+      PYTHONUNBUFFERED: '1'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Environment info
+        run: |
+          sw_vers
+          uname -m
+          python3 -V
+
+      - name: Build JIZURA.app + distribution zip
+        run: python3 exe-build/make-build-mac.py
+
+      - name: Smoke test (server inside the built app)
+        run: |
+          set -e
+          APP="exe-build/dist-mac/JIZURA.app/Contents/MacOS/JIZURA"
+          test -x "$APP"
+          "$APP" --no-ui --no-recognizer --no-converter --port 18123 &
+          APP_PID=$!
+          ok=""
+          for i in $(seq 1 60); do
+            if curl -fsS -o /dev/null "http://127.0.0.1:18123/zh-hans/index.html"; then
+              ok=1
+              break
+            fi
+            sleep 1
+          done
+          kill "$APP_PID" 2>/dev/null || true
+          pkill -f "JIZURA.app/Contents/MacOS/JIZURA" 2>/dev/null || true
+          if [ -z "$ok" ]; then
+            echo "::error::smoke test failed: page was not served"
+            exit 1
+          fi
+          echo "smoke test OK"
+
+      - name: Collect artifacts
+        run: |
+          ls -lh ../JIZURA-mac-*.zip
+          cp ../JIZURA-mac-*.zip ./JIZURA-mac.zip
+
+      - name: Upload distribution zip
+        uses: actions/upload-artifact@v4
+        with:
+          name: JIZURA-mac-arm64
+          path: JIZURA-mac.zip
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 30
+
+      - name: Publish GitHub Release (mirror-friendly download)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -e
+          TAG="mac-build-${GITHUB_RUN_NUMBER}"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" JIZURA-mac.zip --clobber
+          else
+            gh release create "$TAG" JIZURA-mac.zip \
+              --title "macOS build #${GITHUB_RUN_NUMBER} ($(date +%F))" \
+              --notes "JIZURA.app arm64 构建产物。下载后解压得到 JIZURA-mac-<日期>.zip 完整发行包。"
+          fi

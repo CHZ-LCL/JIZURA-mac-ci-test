@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+exe-build/build-mac/
+exe-build/dist-mac/
+exe-build/.build-venv-mac/
+JIZURA-mac-*.zip
+.DS_Store

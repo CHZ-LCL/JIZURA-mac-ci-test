@@ -1,0 +1,6 @@
+ffmpeg 6.1.1（Apple Silicon / arm64 静态构建）
+来自：ffmpeg-static b6.1.1 发布件（GitHub releases；经 npmmirror / gh-proxy 镜像下载）
+说明：
+- 与 Windows 版（ffmpeg.exe）同为 FFmpeg 6.1.1，同一发布源，编码器基本一致（本 arm64 构建含 libsvtav1）。
+- 精确版本与编译参数可在 Mac 上执行：./ffmpeg -version
+- 构建来源标注（configuration）：--prefix=/Volumes/tempdisk/sw --arch=arm64 --enable-gpl --enable-version3 --enable-libsvtav1 等静态链接，允许自由再分发（GPL）。
